@@ -96,6 +96,8 @@ Freda likes to play Starfleet Commander, Ninja Hamsters, Seahorse Adventures."
 #
 # Return:
 #   The newly created network data structure
+
+
 def create_data_structure(string_input):
     network = {};
 
@@ -106,23 +108,11 @@ def create_data_structure(string_input):
     # Split up the input string at the specified delimiter to extract the connection
     # and the games string separately.
     data_array = string_input.split(".");
-
-
+    # add all users to the network
     network = add_users_to_network(data_array, network, str_likes_games);
 
-    for i in range(0, (len(data_array)-1), 2):
-        # extract user's connections first as the first sentence contains the connections
-        is_connected_to_str = data_array[i];
-        is_conn_to_start_index = is_connected_to_str.find(str_connected_to);
-        is_conn_to_end_index = is_connected_to_str.find(str_connected_to) + len(str_connected_to);
-        user_key = is_connected_to_str[0:is_conn_to_start_index];
-        connections = is_connected_to_str[is_conn_to_end_index:];
-        print("%s user_key %s connections" % (user_key, connections));
-        connections_arr = connections.split(",");
-        for j in range(1, (len(connections_arr) - 1)):
-            add_connection(network, connections_arr[0], connections_arr[j]);
-
-
+    # add all users' connections.
+    network = add_connections(data_array, network, str_connected_to);
 
     return network;
 
@@ -133,13 +123,15 @@ def create_data_structure(string_input):
 #
 # Arguments:
 #   network: the gamer network data structure
-#   data_array:    array of data containing information about the user's connections and games liked
-#
-#
+#   data_array:    array of data containing information about the user's connections and games liked e.g.:
+#                 ['John is connected to Bryant, Debra, Walter',
+#                  'John likes to play The Movie: The Game, The Legend of Corgi, Dinosaur Diner',
+#                  'Bryant is connected to Olive, Ollie, Freda, Mercedes',
+#                  'Bryant likes to play City Comptroller: The Fiscal Dilemma, Super Mushroom Man',...
+#                 ]
+#   str_likes_games_pattern: " likes to play "
 # Return:
-#   A list of all connections the user has.
-#   - If the user has no connections, return an empty list.
-#   - If the user is not in network, return None.
+#   The updated network with the new user and game preferences added.
 def add_users_to_network(data_array, network, str_likes_games_pattern):
     for i in range(1, len(data_array), 2):
         # extract the games user likes to play, the second string
@@ -148,11 +140,28 @@ def add_users_to_network(data_array, network, str_likes_games_pattern):
         likes_games_end_index = likes_to_play_str.find(str_likes_games_pattern) + len(str_likes_games_pattern);
         user_key = likes_to_play_str[0:likes_games_start_index];
         games = likes_to_play_str[likes_games_end_index:];
-        print("%s user_key %s games" % (user_key, games));
+        # print("%s user_key %s games" % (user_key, games));
         # add the games the user likes to the network
         add_new_user(network, user_key, games);
+    return network;
+
+
+def add_connections(data_array, network, str_connected_to_pattern):
+    for i in range(0, (len(data_array)-1), 2):
+        # extract user's connections first as the first sentence contains the connections
+        is_connected_to_str = data_array[i];
+        is_conn_to_start_index = is_connected_to_str.find(str_connected_to_pattern);
+        is_conn_to_end_index = is_connected_to_str.find(str_connected_to_pattern) + len(str_connected_to_pattern);
+        user_key = (is_connected_to_str[0:is_conn_to_start_index]).strip();
+        connections = is_connected_to_str[is_conn_to_end_index:];
+        # print("%s user_key %s connections" % (user_key, connections));
+        connections_arr = connections.split(",");
+        for user in connections_arr:
+            add_connection(network, user_key, user.strip());
 
     return network;
+
+
 
 # ----------------------------------------------------------------------------- #
 # Note that the first argument to all procedures below is 'network' This is the #
@@ -207,9 +216,14 @@ def get_games_liked(network,user):
 #   - If a connection already exists from user_A to user_B, return network unchanged.
 #   - If user_A or user_B is not in network, return False.
 def add_connection(network, user_A, user_B):
-
-    print("Printing add_connection", network.get(user_A), network.get(user_B));
-    return network;
+    if(network.has_key(user_A) and network.has_key(user_B)):
+        data = network.get(user_A);
+        if(not data.has_key('connections')):
+            data['connections'] = [];
+        data['connections'].append(user_B);
+        return network;
+    else:
+        return False;
 
 # -----------------------------------------------------------------------------
 # add_new_user(network, user, games):
@@ -231,7 +245,9 @@ def add_connection(network, user_A, user_B):
 def add_new_user(network, user, games):
     data = {};
     if not network.has_key(user):
-        data['games'] = games;
+        games_arr = games.split(",");
+        games_arr = [game.strip(' ') for game in games_arr]
+        data['games'] = games_arr;
         network[user] = data;
 
     return network
