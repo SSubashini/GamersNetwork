@@ -107,7 +107,8 @@ def create_data_structure(string_input):
     # and the games string separately.
     data_array = string_input.split(".");
 
-    add_users_to_network(data_array, network, str_likes_games)
+
+    network = add_users_to_network(data_array, network, str_likes_games);
 
     for i in range(0, (len(data_array)-1), 2):
         # extract user's connections first as the first sentence contains the connections
@@ -143,14 +144,15 @@ def add_users_to_network(data_array, network, str_likes_games_pattern):
     for i in range(1, len(data_array), 2):
         # extract the games user likes to play, the second string
         likes_to_play_str = data_array[i];
-        likes_games_start_index = likes_to_play_str.find(str_likes_games);
-        likes_games_end_index = likes_to_play_str.find(str_likes_games) + len(str_likes_games);
+        likes_games_start_index = likes_to_play_str.find(str_likes_games_pattern);
+        likes_games_end_index = likes_to_play_str.find(str_likes_games_pattern) + len(str_likes_games_pattern);
         user_key = likes_to_play_str[0:likes_games_start_index];
         games = likes_to_play_str[likes_games_end_index:];
         print("%s user_key %s games" % (user_key, games));
         # add the games the user likes to the network
         add_new_user(network, user_key, games);
 
+    return network;
 
 # ----------------------------------------------------------------------------- #
 # Note that the first argument to all procedures below is 'network' This is the #
