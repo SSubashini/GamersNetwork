@@ -246,7 +246,7 @@ def add_new_user(network, user, games):
     data = {};
     if not network.has_key(user):
         games_arr = games.split(",");
-        games_arr = [game.strip(' ') for game in games_arr]
+        games_arr = [game.strip() for game in games_arr]
         data['games'] = games_arr;
         network[user] = data;
 
@@ -271,7 +271,44 @@ def add_new_user(network, user, games):
 #   himself/herself. It is also OK if the list contains a user's primary
 #   connection that is a secondary connection as well.
 def get_secondary_connections(network, user):
-	return []
+    user_vertices = {};
+
+    for user_key in network.iterkeys():
+        user_vertex_data = {};
+        user_vertex_data['marked'] = False;
+        user_vertex_data['distTo'] = 0;
+        user_vertex_data['edgeTo'] = None;
+        user_vertices[user_key] = user_vertex_data;
+
+    bf_user_vertices = breadth_first_search(user_vertices, network, user);
+    secondary_conns = [];
+    for user in bf_user_vertices:
+        if(bf_user_vertices[user]['distTo'] == 2):
+            secondary_conns.append(user);
+    return secondary_conns;
+
+def breadth_first_search(user_vertices, network, user):
+    queue = [];
+    user_data = user_vertices[user];
+    user_data['marked'] = True;
+    user_vertices[user] = user_data;
+    # user_vertices[user]['marked'] = True;
+    queue.append(user);
+    while len(queue) != 0:
+        curr_user = queue[0];
+        queue.remove(curr_user);
+        curr_user_conns = network[curr_user]['connections'];
+        for user_conn in curr_user_conns:
+            if(user_vertices[user_conn]['marked'] == False):
+                user_vertices[user_conn]['edgeTo'] = curr_user;
+                dist = user_vertices[curr_user]['distTo'];
+                user_vertices[user_conn]['distTo'] = dist + 1;
+                user_vertices[user_conn]['marked'] = True;
+                queue.append(user_conn);
+
+    print(user_vertices);
+    return user_vertices;
+
 
 # -----------------------------------------------------------------------------
 # connections_in_common(network, user_A, user_B):
@@ -342,6 +379,6 @@ print net
 #print add_connection(net, "John", "Freda")
 #print add_new_user(net, "Debra", [])
 #print add_new_user(net, "Nick", ["Seven Schemers", "The Movie: The Game"]) # True
-#print get_secondary_connections(net, "Mercedes")
+print get_secondary_connections(net, "Mercedes")
 #print connections_in_common(net, "Mercedes", "John")
 #print path_to_friend(net, "John", "Ollie")
