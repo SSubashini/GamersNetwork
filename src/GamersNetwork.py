@@ -52,7 +52,7 @@ __author__ = 'subashin'
 # -----------------------------------------------------------------------------
 
 # Example string input. Use it to test your code.
-example_input="John is connected to Bryant, Debra, Walter.\
+example_input = "John is connected to Bryant, Debra, Walter.\
 John likes to play The Movie: The Game, The Legend of Corgi, Dinosaur Diner.\
 Bryant is connected to Olive, Ollie, Freda, Mercedes.\
 Bryant likes to play City Comptroller: The Fiscal Dilemma, Super Mushroom Man.\
@@ -139,7 +139,8 @@ def add_users_to_network(data_array, network, str_likes_games_pattern):
         likes_games_start_index = likes_to_play_str.find(str_likes_games_pattern);
         likes_games_end_index = likes_to_play_str.find(str_likes_games_pattern) + len(str_likes_games_pattern);
         user_key = likes_to_play_str[0:likes_games_start_index];
-        games = likes_to_play_str[likes_games_end_index:];
+        games_str = likes_to_play_str[likes_games_end_index:];
+        games = [game.strip() for game in (games_str.split(","))]
         # print("%s user_key %s games" % (user_key, games));
         # add the games the user likes to the network
         add_new_user(network, user_key, games);
@@ -147,7 +148,7 @@ def add_users_to_network(data_array, network, str_likes_games_pattern):
 
 
 def add_connections(data_array, network, str_connected_to_pattern):
-    for i in range(0, (len(data_array)-1), 2):
+    for i in range(0, (len(data_array) - 1), 2):
         # extract user's connections first as the first sentence contains the connections
         is_connected_to_str = data_array[i];
         is_conn_to_start_index = is_connected_to_str.find(str_connected_to_pattern);
@@ -160,7 +161,6 @@ def add_connections(data_array, network, str_connected_to_pattern):
             add_connection(network, user_key, user.strip());
 
     return network;
-
 
 
 # ----------------------------------------------------------------------------- #
@@ -183,7 +183,10 @@ def add_connections(data_array, network, str_connected_to_pattern):
 #   - If the user has no connections, return an empty list.
 #   - If the user is not in network, return None.
 def get_connections(network, user):
-	return []
+    if (network.has_key(user)):
+        return network[user]['connections'];
+        return None;
+
 
 # -----------------------------------------------------------------------------
 # get_games_liked(network, user):
@@ -197,8 +200,10 @@ def get_connections(network, user):
 #   A list of all games the user likes.
 #   - If the user likes no games, return an empty list.
 #   - If the user is not in network, return None.
-def get_games_liked(network,user):
-    return []
+def get_games_liked(network, user):
+    if (network.has_key(user)):
+        return network[user]['games'];
+        return None;
 
 
 # -----------------------------------------------------------------------------
@@ -216,14 +221,16 @@ def get_games_liked(network,user):
 #   - If a connection already exists from user_A to user_B, return network unchanged.
 #   - If user_A or user_B is not in network, return False.
 def add_connection(network, user_A, user_B):
-    if(network.has_key(user_A) and network.has_key(user_B)):
+    if (network.has_key(user_A) and network.has_key(user_B)):
         data = network.get(user_A);
-        if(not data.has_key('connections')):
+        if (not data.has_key('connections')):
             data['connections'] = [];
-        data['connections'].append(user_B);
+        if (user_B not in data['connections']):
+            data['connections'].append(user_B);
         return network;
     else:
         return False;
+
 
 # -----------------------------------------------------------------------------
 # add_new_user(network, user, games):
@@ -245,12 +252,13 @@ def add_connection(network, user_A, user_B):
 def add_new_user(network, user, games):
     data = {};
     if not network.has_key(user):
-        games_arr = games.split(",");
-        games_arr = [game.strip() for game in games_arr]
-        data['games'] = games_arr;
+        # games_arr = games.split(",");
+        # games_arr = [game.strip() for game in games]
+        data['games'] = games;
         network[user] = data;
 
     return network
+
 
 # -----------------------------------------------------------------------------
 # get_secondary_connections(network, user):
@@ -283,9 +291,10 @@ def get_secondary_connections(network, user):
     bf_user_vertices = breadth_first_search(user_vertices, network, user);
     secondary_conns = [];
     for user in bf_user_vertices:
-        if(bf_user_vertices[user]['distTo'] == 2):
+        if (bf_user_vertices[user]['distTo'] == 2):
             secondary_conns.append(user);
     return secondary_conns;
+
 
 def breadth_first_search(user_vertices, network, user):
     queue = [];
@@ -299,14 +308,13 @@ def breadth_first_search(user_vertices, network, user):
         queue.remove(curr_user);
         curr_user_conns = network[curr_user]['connections'];
         for user_conn in curr_user_conns:
-            if(user_vertices[user_conn]['marked'] == False):
+            if (user_vertices[user_conn]['marked'] == False):
                 user_vertices[user_conn]['edgeTo'] = curr_user;
                 dist = user_vertices[curr_user]['distTo'];
                 user_vertices[user_conn]['distTo'] = dist + 1;
                 user_vertices[user_conn]['marked'] = True;
                 queue.append(user_conn);
 
-    print(user_vertices);
     return user_vertices;
 
 
@@ -323,7 +331,14 @@ def breadth_first_search(user_vertices, network, user):
 #   The number of connections in common (as an integer).
 #   - If user_A or user_B is not in network, return False.
 def connections_in_common(network, user_A, user_B):
-    return 0
+    if (network.has_key(user_A) and network.has_key(user_B)):
+        conn_A = network[user_A]['connections'];
+        conn_B = network[user_B]['connections'];
+        res = set(conn_A).intersection(conn_B);
+        return len(res);
+    else:
+        return False;
+
 
 # -----------------------------------------------------------------------------
 # path_to_friend(network, user_A, user_B):
@@ -357,9 +372,22 @@ def connections_in_common(network, user_A, user_B):
 #   in this procedure to keep track of nodes already visited in your search. You
 #   may safely add default parameters since all calls used in the grading script
 #   will only include the arguments network, user_A, and user_B.
+
+
 def path_to_friend(network, user_A, user_B):
-	# your RECURSIVE solution here!
-	return None
+    path_to_friend_stack = [];
+    build_depth_first_paths(network, user_A);
+    if ((network.has_key(user_A) and network.has_key(user_B)) and
+            (network[user_B]['hasPathTo'] == True)):
+            while(user_A != user_B):
+                path_to_friend_stack.append(user_B);
+                user_B = network[user_B]['edgeTo'];
+            path_to_friend_stack.append(user_A);
+    else:
+        return None;
+
+    return path_to_friend_stack;
+
 
 # Make-Your-Own-Procedure (MYOP)
 # -----------------------------------------------------------------------------
@@ -371,14 +399,33 @@ def path_to_friend(network, user_A, user_B):
 # Replace this with your own procedure! You can also uncomment the lines below
 # to see how your code behaves. Have fun!
 
+def build_depth_first_paths(network, user_A):
+    for user in network:
+        network[user]['marked'] = False;
+        network[user]['edgeTo'] = None;
+        network[user]['hasPathTo'] = False;
+
+    depth_first_search(network, user_A);
+
+
+def depth_first_search(network, user_A):
+    network[user_A]['marked'] = True;
+    for user in network[user_A]['connections']:
+        if(network[user]['marked'] == False):
+            network[user]['marked'] == True;
+            network[user]['edgeTo'] = user_A;
+            network[user]['hasPathTo'] = True;
+            depth_first_search(network, user);
+
+
 net = create_data_structure(example_input)
 print net
-#print get_connections(net, "Debra")
-#print get_connections(net, "Mercedes")
-#print get_games_liked(net, "John")
-#print add_connection(net, "John", "Freda")
-#print add_new_user(net, "Debra", [])
-#print add_new_user(net, "Nick", ["Seven Schemers", "The Movie: The Game"]) # True
+print get_connections(net, "Debra")
+print get_connections(net, "Mercedes")
+print get_games_liked(net, "John")
+print add_connection(net, "John", "Freda")
+print add_new_user(net, "Debra", [])
+print add_new_user(net, "Nick", ["Seven Schemers", "The Movie: The Game"])  # True
 print get_secondary_connections(net, "Mercedes")
-#print connections_in_common(net, "Mercedes", "John")
-#print path_to_friend(net, "John", "Ollie")
+print connections_in_common(net, "Mercedes", "John")
+print path_to_friend(net, "John", "Ollie")
