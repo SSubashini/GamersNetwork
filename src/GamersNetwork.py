@@ -1,4 +1,4 @@
-__author__ = 'subashin'
+__author__ = 'Subashini Shanmugadas'
 # --------------------------- #
 # Intro to CS Final Project   #
 # Gaming Social Network       #
