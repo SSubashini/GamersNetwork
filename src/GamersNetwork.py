@@ -101,24 +101,25 @@ Freda likes to play Starfleet Commander, Ninja Hamsters, Seahorse Adventures."
 def create_data_structure(string_input):
     network = {};
 
-    # initialize string constants/patterns to look for to build the network
-    str_connected_to = " is connected to ";
-    str_likes_games = " likes to play ";
+    if(string_input != ""):
+        # initialize string constants/patterns to look for to build the network
+        str_connected_to = " is connected to ";
+        str_likes_games = " likes to play ";
 
-    # Split up the input string at the specified delimiter to extract the connection
-    # and the games string separately.
-    data_array = string_input.split(".");
-    # add all users to the network
-    network = add_users_to_network(data_array, network, str_likes_games);
+        # Split up the input string at the specified delimiter to extract the connection
+        # and the games string separately.
+        data_array = string_input.split(".");
+        # add all users to the network
+        network = add_users_to_network(data_array, network, str_likes_games);
 
-    # add all users' connections.
-    network = add_connections(data_array, network, str_connected_to);
+        # add all users' connections.
+        network = add_connections(data_array, network, str_connected_to);
 
     return network;
 
-
+# MYOP - Helper function for the create_data_structure procedure
 # -----------------------------------------------------------------------------
-# add_users_to_network(network, user):
+# add_users_to_network(data_array, network, str_likes_games_pattern):
 #   Returns the network with the users from the data_array added to the network
 #
 # Arguments:
@@ -141,12 +142,27 @@ def add_users_to_network(data_array, network, str_likes_games_pattern):
         user_key = likes_to_play_str[0:likes_games_start_index];
         games_str = likes_to_play_str[likes_games_end_index:];
         games = [game.strip() for game in (games_str.split(","))]
-        # print("%s user_key %s games" % (user_key, games));
         # add the games the user likes to the network
         add_new_user(network, user_key, games);
     return network;
 
 
+# MYOP - Helper function for the create_data_structure procedure
+# -----------------------------------------------------------------------------
+# add_connections(data_array, network, str_connected_to_pattern):
+#   Returns the network with the users from the data_array added to the network
+#
+# Arguments:
+#   network: the gamer network data structure
+#   data_array:    array of data containing information about the user's connections and games liked e.g.:
+#                 ['John is connected to Bryant, Debra, Walter',
+#                  'John likes to play The Movie: The Game, The Legend of Corgi, Dinosaur Diner',
+#                  'Bryant is connected to Olive, Ollie, Freda, Mercedes',
+#                  'Bryant likes to play City Comptroller: The Fiscal Dilemma, Super Mushroom Man',...
+#                 ]
+#   str_connected_to_pattern: " is connected to "
+# Return:
+#   The updated network with the new user and respective connections added.
 def add_connections(data_array, network, str_connected_to_pattern):
     for i in range(0, (len(data_array) - 1), 2):
         # extract user's connections first as the first sentence contains the connections
@@ -185,14 +201,15 @@ def add_connections(data_array, network, str_connected_to_pattern):
 def get_connections(network, user):
     if (network.has_key(user)):
         return network[user]['connections'];
-        return None;
+
+    return None;
 
 
 # -----------------------------------------------------------------------------
 # get_games_liked(network, user):
 #   Returns a list of all the games a user likes
 #
-# Arguments:
+# Arguments: is connected to
 #   network: the gamer network data structure
 #   user:    a string containing the name of the user
 #
@@ -203,7 +220,8 @@ def get_connections(network, user):
 def get_games_liked(network, user):
     if (network.has_key(user)):
         return network[user]['games'];
-        return None;
+
+    return None;
 
 
 # -----------------------------------------------------------------------------
@@ -252,8 +270,6 @@ def add_connection(network, user_A, user_B):
 def add_new_user(network, user, games):
     data = {};
     if not network.has_key(user):
-        # games_arr = games.split(",");
-        # games_arr = [game.strip() for game in games]
         data['games'] = games;
         network[user] = data;
 
@@ -280,7 +296,7 @@ def add_new_user(network, user, games):
 #   connection that is a secondary connection as well.
 def get_secondary_connections(network, user):
     user_vertices = {};
-
+    secondary_conns = [];
     for user_key in network.iterkeys():
         user_vertex_data = {};
         user_vertex_data['marked'] = False;
@@ -289,19 +305,36 @@ def get_secondary_connections(network, user):
         user_vertices[user_key] = user_vertex_data;
 
     bf_user_vertices = breadth_first_search(user_vertices, network, user);
-    secondary_conns = [];
+
     for user in bf_user_vertices:
         if (bf_user_vertices[user]['distTo'] == 2):
             secondary_conns.append(user);
     return secondary_conns;
 
 
+# -----------------------------------------------------------------------------
+# get_secondary_connections(network, user):
+#   Finds all the secondary connections (i.e. connections of connections) of a
+#   given user.
+#
+# Arguments:
+#   network: the gamer network data structure
+#   user:    a string containing the name of the user
+#
+# Return:
+#   A list containing the secondary connections (connections of connections).
+#   - If the user is not in the network, return None.
+#   - If a user has no primary connections to begin with, return an empty list.
+#
+# NOTE:
+#   It is OK if a user's list of secondary connections includes the user
+#   himself/herself. It is also OK if the list contains a user's primary
+#   connection that is a secondary connection as well.
 def breadth_first_search(user_vertices, network, user):
     queue = [];
     user_data = user_vertices[user];
     user_data['marked'] = True;
     user_vertices[user] = user_data;
-    # user_vertices[user]['marked'] = True;
     queue.append(user);
     while len(queue) != 0:
         curr_user = queue[0];
@@ -379,10 +412,10 @@ def path_to_friend(network, user_A, user_B):
     build_depth_first_paths(network, user_A);
     if ((network.has_key(user_A) and network.has_key(user_B)) and
             (network[user_B]['hasPathTo'] == True)):
-            while(user_A != user_B):
-                path_to_friend_stack.append(user_B);
-                user_B = network[user_B]['edgeTo'];
-            path_to_friend_stack.append(user_A);
+        while(user_A != user_B):
+            path_to_friend_stack.insert(0, user_B);
+            user_B = network[user_B]['edgeTo'];
+        path_to_friend_stack.insert(0, user_A);
     else:
         return None;
 
@@ -399,6 +432,25 @@ def path_to_friend(network, user_A, user_B):
 # Replace this with your own procedure! You can also uncomment the lines below
 # to see how your code behaves. Have fun!
 
+
+
+###############################################################################
+# -----------------------------------------------------------------------------
+# build_depth_first_paths(network, user_A):
+#   Analyses the given network starting from the vertex - user_A
+# Arguments:
+#   network: the gamer network data structure
+#   user_A:  a string containing the origin vertex to begin the search
+#
+# Return:
+#   An updated network with the following information:
+#   network[user]['marked'] - if True, then the vertex has been visited
+#                              while following the connections from the source
+#   network[user]['edgeTo'] - used to trace the path. A value other than None
+#                             signifies the origin from which this vertex was
+#                             visited;
+#   network[user]['hasPathTo'] - True/False - if True indicates that this vertex is reachable
+#                                from the source vertex, user_A;
 def build_depth_first_paths(network, user_A):
     for user in network:
         network[user]['marked'] = False;
@@ -408,6 +460,23 @@ def build_depth_first_paths(network, user_A):
     depth_first_search(network, user_A);
 
 
+# -----------------------------------------------------------------------------
+# depth_first_search(network, user_A):
+#   Recursive procedure that visits every unvisited vertex from the source, user_A
+#
+# Arguments:
+#   network: the gamer network data structure
+#   user_A:  a string containing the origin vertex to begin the search
+#
+# Return:
+#   An updated network with the following information:
+#   network[user]['marked'] - if True, then the vertex has been visited
+#                              while following the connections from the source
+#   network[user]['edgeTo'] - used to trace the path. A value other than None
+#                             signifies the origin from which this vertex was
+#                             visited;
+#   network[user]['hasPathTo'] - True/False - if True indicates that this vertex is reachable
+#                                from the source vertex, user_A;
 def depth_first_search(network, user_A):
     network[user_A]['marked'] = True;
     for user in network[user_A]['connections']:
@@ -429,3 +498,4 @@ print add_new_user(net, "Nick", ["Seven Schemers", "The Movie: The Game"])  # Tr
 print get_secondary_connections(net, "Mercedes")
 print connections_in_common(net, "Mercedes", "John")
 print path_to_friend(net, "John", "Ollie")
+print get_games_liked(net, "Nick")
