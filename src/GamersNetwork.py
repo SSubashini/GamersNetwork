@@ -200,8 +200,10 @@ def add_connections(data_array, network, str_connected_to_pattern):
 #   - If the user is not in network, return None.
 def get_connections(network, user):
     if (network.has_key(user)):
-        return network[user]['connections'];
-
+        if 'connections' in network[user]:
+            return network[user]['connections'];
+        else:
+            return [];
     return None;
 
 
@@ -271,6 +273,7 @@ def add_new_user(network, user, games):
     data = {};
     if not network.has_key(user):
         data['games'] = games;
+        data['connections'] = [];
         network[user] = data;
 
     return network
@@ -295,60 +298,69 @@ def add_new_user(network, user, games):
 #   himself/herself. It is also OK if the list contains a user's primary
 #   connection that is a secondary connection as well.
 def get_secondary_connections(network, user):
-    user_vertices = {};
     secondary_conns = [];
-    for user_key in network.iterkeys():
-        user_vertex_data = {};
-        user_vertex_data['marked'] = False;
-        user_vertex_data['distTo'] = 0;
-        user_vertex_data['edgeTo'] = None;
-        user_vertices[user_key] = user_vertex_data;
+    if(user not in network):
+        return None;
 
-    bf_user_vertices = breadth_first_search(user_vertices, network, user);
+    # First attempted to implement using Breadth first search.
+    # but realized that approach would only work for graphs without cycles.
+    # Update network with key to keep track of nodes being visited
+    # for curr_user in network:
+    #     network[curr_user]['marked'] = False;
+    #     network[curr_user]['distTo'] = 0;
+    #     network[curr_user]['edgeTo'] = None;
+    #
+    # bf_user_vertices = breadth_first_search(network, user);
+    #
+    # for bf_user in bf_user_vertices:
+    #     if (bf_user_vertices[bf_user]['distTo'] == 2):
+    #         secondary_conns.append(bf_user);
+    first_conns = get_connections(network, user);
+    for curr_user in first_conns:
+        secondary_conns.extend(get_connections(network, curr_user));
 
-    for user in bf_user_vertices:
-        if (bf_user_vertices[user]['distTo'] == 2):
-            secondary_conns.append(user);
+    secondary_conns = list(set(secondary_conns));
     return secondary_conns;
 
 
 # -----------------------------------------------------------------------------
-# get_secondary_connections(network, user):
-#   Finds all the secondary connections (i.e. connections of connections) of a
-#   given user.
+# breadth_first_search(network, user):
+#   From a given source vertex, the procedure visits every vertex connected to
+#   the source vertex.
 #
 # Arguments:
 #   network: the gamer network data structure
-#   user:    a string containing the name of the user
+#   user:    a string containing the name of the user - the source vertex from
+#   which to begin the search.
 #
 # Return:
-#   A list containing the secondary connections (connections of connections).
-#   - If the user is not in the network, return None.
-#   - If a user has no primary connections to begin with, return an empty list.
+#   An updated network with the following information:
+#   network[user]['marked'] - if True, then the vertex has been visited
+#                              while following the connections from the source
+#   network[user]['edgeTo'] - used to trace the path. A value other than None
+#                             signifies the origin from which this vertex was
+#                             visited;
+#   network[user]['distTo'] - A value indicating how farther away is this vertex
+#                               while following the given source vertex.
 #
-# NOTE:
-#   It is OK if a user's list of secondary connections includes the user
-#   himself/herself. It is also OK if the list contains a user's primary
-#   connection that is a secondary connection as well.
-def breadth_first_search(user_vertices, network, user):
+def breadth_first_search(network, user):
     queue = [];
-    user_data = user_vertices[user];
-    user_data['marked'] = True;
-    user_vertices[user] = user_data;
     queue.append(user);
+    i = 0;
     while len(queue) != 0:
         curr_user = queue[0];
         queue.remove(curr_user);
         curr_user_conns = network[curr_user]['connections'];
+
         for user_conn in curr_user_conns:
-            if (user_vertices[user_conn]['marked'] == False):
-                user_vertices[user_conn]['edgeTo'] = curr_user;
-                dist = user_vertices[curr_user]['distTo'];
-                user_vertices[user_conn]['distTo'] = dist + 1;
-                user_vertices[user_conn]['marked'] = True;
+            if (network[user_conn]['marked'] == False):
+                network[user_conn]['edgeTo'] = curr_user;
+                dist = network[curr_user]['distTo'];
+                network[user_conn]['distTo'] = dist + 1;
+                network[user_conn]['marked'] = True;
                 queue.append(user_conn);
 
-    return user_vertices;
+    return network;
 
 
 # -----------------------------------------------------------------------------
@@ -409,9 +421,11 @@ def connections_in_common(network, user_A, user_B):
 
 def path_to_friend(network, user_A, user_B):
     path_to_friend_stack = [];
-    build_depth_first_paths(network, user_A);
-    if ((network.has_key(user_A) and network.has_key(user_B)) and
-            (network[user_B]['hasPathTo'] == True)):
+    if (network.has_key(user_A) and network.has_key(user_B)):
+        build_depth_first_paths(network, user_A);
+    else:
+        return None;
+    if(network[user_B]['hasPathTo'] == True):
         while(user_A != user_B):
             path_to_friend_stack.insert(0, user_B);
             user_B = network[user_B]['edgeTo'];
@@ -456,7 +470,7 @@ def build_depth_first_paths(network, user_A):
         network[user]['marked'] = False;
         network[user]['edgeTo'] = None;
         network[user]['hasPathTo'] = False;
-
+        network[user]['distTo'] = 0;
     depth_first_search(network, user_A);
 
 
@@ -484,6 +498,8 @@ def depth_first_search(network, user_A):
             network[user]['marked'] == True;
             network[user]['edgeTo'] = user_A;
             network[user]['hasPathTo'] = True;
+            dist = network[user_A]['distTo'];
+            network[user]['distTo'] = dist + 1;
             depth_first_search(network, user);
 
 
@@ -499,3 +515,8 @@ print get_secondary_connections(net, "Mercedes")
 print connections_in_common(net, "Mercedes", "John")
 print path_to_friend(net, "John", "Ollie")
 print get_games_liked(net, "Nick")
+
+
+network = create_data_structure(example_input)
+print(network);
+print sorted(get_secondary_connections(network,"John"));
